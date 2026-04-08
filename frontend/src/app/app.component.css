@@ -1,0 +1,205 @@
+:host {
+  display: block;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+.app-shell {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(13, 110, 253, 0.08), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(25, 135, 84, 0.07), transparent 22%),
+    linear-gradient(180deg, #f4f7fb 0%, #eef3f9 100%);
+  color: #1f2937;
+}
+
+.hero-card,
+.stat-card,
+.task-card,
+.sticky-panel,
+.calendar-list .card {
+  border-radius: 1.2rem;
+}
+
+.hero-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f7faff 100%);
+}
+
+.stat-card {
+  background: #ffffff;
+}
+
+.stat-card-accent {
+  background: linear-gradient(135deg, #fff8f1 0%, #ffffff 100%);
+}
+
+.stat-value {
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.tracking-wide {
+  letter-spacing: 0.08em;
+}
+
+.sticky-panel {
+  top: 1.5rem;
+}
+
+.form-control,
+.form-select,
+.btn,
+.card,
+.alert,
+.badge {
+  border-radius: 0.9rem;
+}
+
+.form-control,
+.form-select {
+  min-height: 3rem;
+}
+
+textarea.form-control {
+  min-height: 7.5rem;
+  resize: vertical;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: rgba(13, 110, 253, 0.45);
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.12);
+}
+
+.invalid-copy,
+.field-hint {
+  font-size: 0.875rem;
+}
+
+.invalid-copy {
+  color: #b42318;
+  margin-top: 0.35rem;
+}
+
+.field-hint {
+  color: #6b7280;
+}
+
+.toolbar {
+  border-radius: 1rem;
+}
+
+.active-view {
+  background: var(--bs-primary);
+  border-color: var(--bs-primary);
+  color: #fff;
+}
+
+.min-w-0 {
+  min-width: 0;
+}
+
+.task-meta {
+  font-size: 0.95rem;
+}
+
+.task-actions {
+  min-width: 210px;
+  justify-content: flex-end;
+}
+
+.task-actions .btn {
+  white-space: nowrap;
+}
+
+.status-badge,
+.priority-badge,
+.overdue-chip {
+  font-weight: 700;
+  padding: 0.5rem 0.8rem;
+}
+
+.status-badge[data-status='Pending'] {
+  background: #e7f1ff;
+  color: #0a58ca;
+}
+
+.status-badge[data-status='In Progress'] {
+  background: #fff4e5;
+  color: #b45309;
+}
+
+.status-badge[data-status='Done'] {
+  background: #e9f9ee;
+  color: #157347;
+}
+
+.priority-badge[data-priority='Low'] {
+  background: #eef2f7;
+  color: #475569;
+}
+
+.priority-badge[data-priority='Medium'] {
+  background: #fff3cd;
+  color: #997404;
+}
+
+.priority-badge[data-priority='High'] {
+  background: #fde2e1;
+  color: #b02a37;
+}
+
+.overdue-chip {
+  background: #fdecef;
+  color: #b02a37;
+}
+
+.calendar-task:last-child {
+  border-bottom: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.empty-state {
+  border: 1px dashed #cbd5e1;
+  border-radius: 1rem;
+  background: #fafcff;
+}
+
+@media (min-width: 1200px) {
+  .sticky-panel {
+    position: sticky;
+  }
+}
+
+@media (max-width: 1199.98px) {
+  .task-actions {
+    min-width: 0;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .app-shell {
+    padding-top: 0.5rem;
+  }
+
+  .hero-card .card-body,
+  .task-card .card-body,
+  .calendar-list .card .card-body,
+  .sticky-panel .card-body {
+    padding: 1.25rem !important;
+  }
+
+  .task-actions {
+    width: 100%;
+  }
+
+  .task-actions .btn {
+    flex: 1 1 auto;
+  }
+}

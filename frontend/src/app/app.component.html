@@ -1,0 +1,302 @@
+<main class="app-shell py-4 py-lg-5">
+  <div class="container-xxl">
+    <section class="hero-card card shadow-sm border-0 mb-4">
+      <div class="card-body p-4 p-lg-5">
+        <div class="d-flex flex-column flex-xl-row gap-4 justify-content-between align-items-xl-center">
+          <div class="me-xl-4">
+            <p class="text-uppercase small fw-semibold text-primary-emphasis mb-2 tracking-wide">MEAN stack project</p>
+            <h1 class="display-6 fw-bold mb-2">Task Planner Pro</h1>
+            <p class="lead text-secondary mb-0">
+              Clean planning, quick updates, and a simple calendar view for day-to-day task management.
+            </p>
+          </div>
+
+          <div class="d-flex flex-wrap gap-2">
+            <button type="button" class="btn btn-outline-primary" (click)="viewMode = 'board'" [class.active-view]="viewMode === 'board'">
+              Board
+            </button>
+            <button type="button" class="btn btn-outline-primary" (click)="viewMode = 'calendar'" [class.active-view]="viewMode === 'calendar'">
+              Calendar
+            </button>
+            <button type="button" class="btn btn-outline-secondary" (click)="fetchTasks()" [disabled]="loading">
+              Refresh
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="row g-3 g-lg-4 mb-4">
+      <div class="col-6 col-xl-3">
+        <article class="card stat-card border-0 shadow-sm h-100">
+          <div class="card-body">
+            <div class="text-uppercase small text-secondary fw-semibold mb-2">Total tasks</div>
+            <div class="stat-value">{{ totalTasks }}</div>
+          </div>
+        </article>
+      </div>
+      <div class="col-6 col-xl-3">
+        <article class="card stat-card border-0 shadow-sm h-100">
+          <div class="card-body">
+            <div class="text-uppercase small text-secondary fw-semibold mb-2">Planned this week</div>
+            <div class="stat-value">{{ tasksThisWeek }}</div>
+          </div>
+        </article>
+      </div>
+      <div class="col-6 col-xl-3">
+        <article class="card stat-card border-0 shadow-sm h-100">
+          <div class="card-body">
+            <div class="text-uppercase small text-secondary fw-semibold mb-2">Estimated workload</div>
+            <div class="stat-value">{{ formatDuration(totalPlannedMinutes) }}</div>
+          </div>
+        </article>
+      </div>
+      <div class="col-6 col-xl-3">
+        <article class="card stat-card stat-card-accent border-0 shadow-sm h-100">
+          <div class="card-body">
+            <div class="text-uppercase small text-secondary fw-semibold mb-2">High priority open</div>
+            <div class="stat-value">{{ highPriorityTasks }}</div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <div class="alert alert-danger shadow-sm" *ngIf="error">{{ error }}</div>
+
+    <section class="row g-4 align-items-start">
+      <div class="col-12 col-xl-4">
+        <section class="card shadow-sm border-0 sticky-panel">
+          <div class="card-body p-4">
+            <div class="d-flex justify-content-between align-items-start gap-3 mb-4">
+              <div>
+                <p class="text-uppercase small text-secondary fw-semibold mb-1">Task details</p>
+                <h2 class="h4 mb-0">{{ editingId ? 'Update task' : 'Create task' }}</h2>
+              </div>
+              <button *ngIf="editingId" type="button" class="btn btn-outline-secondary btn-sm" (click)="resetForm()">Cancel</button>
+            </div>
+
+            <form [formGroup]="form" (ngSubmit)="submit()" class="row g-3">
+              <div class="col-12">
+                <label class="form-label fw-semibold">Task title</label>
+                <input type="text" class="form-control form-control-lg" formControlName="title" placeholder="Prepare sprint review">
+                <div class="invalid-copy" *ngIf="form.controls.title.touched && form.controls.title.invalid">
+                  Enter a title with at least 2 characters.
+                </div>
+              </div>
+
+              <div class="col-12">
+                <label class="form-label fw-semibold">Description</label>
+                <textarea rows="4" class="form-control" formControlName="description" placeholder="Add a short note or action plan"></textarea>
+              </div>
+
+              <div class="col-12 col-md-6">
+                <label class="form-label fw-semibold">Status</label>
+                <select class="form-select" formControlName="status">
+                  <option *ngFor="let status of statuses" [value]="status">{{ status }}</option>
+                </select>
+              </div>
+
+              <div class="col-12 col-md-6">
+                <label class="form-label fw-semibold">Priority</label>
+                <select class="form-select" formControlName="priority">
+                  <option *ngFor="let priority of priorities" [value]="priority">{{ priority }}</option>
+                </select>
+              </div>
+
+              <div class="col-12">
+                <label class="form-label fw-semibold">Scheduled day</label>
+                <input type="date" class="form-control" formControlName="scheduledDate">
+                <div class="invalid-copy" *ngIf="form.controls.scheduledDate.touched && form.controls.scheduledDate.invalid">
+                  Choose a day for this task.
+                </div>
+              </div>
+
+              <div class="col-12">
+                <label class="form-label fw-semibold d-block">Estimated time</label>
+                <div class="row g-3">
+                  <div class="col-6">
+                    <input type="number" min="0" class="form-control" formControlName="durationHours" placeholder="Hours">
+                    <div class="field-hint mt-1">Hours</div>
+                  </div>
+                  <div class="col-6">
+                    <input type="number" min="0" max="59" step="5" class="form-control" formControlName="durationMinutes" placeholder="Minutes">
+                    <div class="field-hint mt-1">Minutes</div>
+                  </div>
+                </div>
+                <div class="field-hint mt-2">Enter how long this task will take.</div>
+              </div>
+
+              <div class="col-12 d-grid">
+                <button type="submit" class="btn btn-primary btn-lg" [disabled]="submitting">
+                  {{ submitting ? 'Saving...' : (editingId ? 'Save changes' : 'Add task') }}
+                </button>
+              </div>
+            </form>
+          </div>
+        </section>
+      </div>
+
+      <div class="col-12 col-xl-8">
+        <section class="card shadow-sm border-0">
+          <div class="card-body p-4">
+            <div class="d-flex flex-column flex-lg-row gap-3 justify-content-between align-items-lg-center mb-4">
+              <div>
+                <p class="text-uppercase small text-secondary fw-semibold mb-1">Overview</p>
+                <h2 class="h4 mb-0">{{ viewMode === 'board' ? 'Task board' : 'Calendar agenda' }}</h2>
+              </div>
+              <div class="badge text-bg-light fs-6 fw-semibold px-3 py-2 border">{{ completionRate }}% complete</div>
+            </div>
+
+            <div class="toolbar card border-0 bg-body-tertiary mb-4">
+              <div class="card-body p-3">
+                <div class="row g-3 align-items-end">
+                  <div class="col-12 col-lg-4">
+                    <label class="form-label fw-semibold">Search</label>
+                    <input
+                      type="search"
+                      class="form-control"
+                      [value]="searchTerm"
+                      (input)="searchTerm = $any($event.target).value"
+                      placeholder="Search tasks"
+                    />
+                  </div>
+
+                  <div class="col-6 col-lg-2">
+                    <label class="form-label fw-semibold">Status</label>
+                    <select class="form-select" [value]="statusFilter" (change)="statusFilter = $any($event.target).value">
+                      <option value="All">All</option>
+                      <option *ngFor="let status of statuses" [value]="status">{{ status }}</option>
+                    </select>
+                  </div>
+
+                  <div class="col-6 col-lg-2">
+                    <label class="form-label fw-semibold">Priority</label>
+                    <select class="form-select" [value]="priorityFilter" (change)="priorityFilter = $any($event.target).value">
+                      <option value="All">All</option>
+                      <option *ngFor="let priority of priorities" [value]="priority">{{ priority }}</option>
+                    </select>
+                  </div>
+
+                  <div class="col-12 col-lg-3">
+                    <label class="form-label fw-semibold">Sort by</label>
+                    <select class="form-select" [value]="sortBy" (change)="sortBy = $any($event.target).value">
+                      <option *ngFor="let option of sortOptions" [value]="option.value">{{ option.label }}</option>
+                    </select>
+                  </div>
+
+                  <div class="col-12 col-lg-1 d-grid">
+                    <button type="button" class="btn btn-outline-secondary" (click)="clearFilters()">Clear</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="alert alert-light border shadow-sm-subtle mb-4" *ngIf="loading">Loading tasks...</div>
+            <div class="empty-state text-center py-5" *ngIf="!loading && !filteredTasks.length">
+              <h3 class="h5 mb-2">No matching tasks yet</h3>
+              <p class="text-secondary mb-0">Add one on the left to get started.</p>
+            </div>
+
+            <div class="task-list d-grid gap-3" *ngIf="!loading && filteredTasks.length && viewMode === 'board'">
+              <article class="card border-0 shadow-sm task-card" *ngFor="let task of filteredTasks; trackBy: trackByTaskId">
+                <div class="card-body p-4">
+                  <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
+                    <div class="flex-grow-1 min-w-0">
+                      <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                        <h3 class="h5 mb-0 me-1">{{ task.title }}</h3>
+                        <span class="badge rounded-pill status-badge" [attr.data-status]="task.status">{{ task.status }}</span>
+                        <span class="badge rounded-pill priority-badge" [attr.data-priority]="task.priority">{{ task.priority }}</span>
+                      </div>
+
+                      <div class="task-meta d-flex flex-wrap gap-2 text-secondary mb-3">
+                        <span>{{ formatDate(task.scheduledDate) }}</span>
+                        <span>•</span>
+                        <span>{{ formatDuration(task.durationMinutes) }}</span>
+                        <span *ngIf="isOverdue(task)" class="badge rounded-pill overdue-chip">Overdue</span>
+                      </div>
+
+                      <p class="mb-0 text-secondary" *ngIf="task.description">{{ task.description }}</p>
+                    </div>
+
+                    <div class="d-flex flex-wrap align-content-start gap-2 task-actions">
+                      <button
+                        type="button"
+                        class="btn btn-success"
+                        (click)="markComplete(task)"
+                        [disabled]="task.status === 'Done' || completingId === task._id"
+                      >
+                        {{ completingId === task._id ? 'Completing...' : (task.status === 'Done' ? 'Completed' : 'Complete') }}
+                      </button>
+                      <button type="button" class="btn btn-outline-primary" (click)="editTask(task)">Edit</button>
+                      <button
+                        type="button"
+                        class="btn btn-outline-danger"
+                        (click)="deleteTask(task)"
+                        [disabled]="deletingId === task._id"
+                      >
+                        {{ deletingId === task._id ? 'Deleting...' : 'Delete' }}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="task-footer d-flex flex-wrap justify-content-between gap-2 mt-3 pt-3 border-top text-secondary small">
+                    <span>Updated {{ task.updatedAt | date:'mediumDate' }}</span>
+                    <span>{{ task.updatedAt | date:'shortTime' }}</span>
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            <div class="calendar-list d-grid gap-3" *ngIf="!loading && filteredTasks.length && viewMode === 'calendar'">
+              <section class="card border-0 shadow-sm" *ngFor="let group of calendarGroups">
+                <div class="card-body p-4">
+                  <div class="d-flex flex-column flex-md-row justify-content-between gap-2 mb-3 pb-3 border-bottom">
+                    <div>
+                      <h3 class="h5 mb-1">{{ formatDate(group.date) }}</h3>
+                      <p class="text-secondary mb-0">{{ group.tasks.length }} task{{ group.tasks.length === 1 ? '' : 's' }} scheduled</p>
+                    </div>
+                    <strong class="fs-5">{{ formatDuration(group.totalMinutes) }}</strong>
+                  </div>
+
+                  <article class="calendar-task py-3 border-bottom" *ngFor="let task of group.tasks; trackBy: trackByTaskId">
+                    <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
+                      <div class="flex-grow-1 min-w-0">
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                          <h4 class="h6 mb-0 me-1">{{ task.title }}</h4>
+                          <span class="badge rounded-pill status-badge" [attr.data-status]="task.status">{{ task.status }}</span>
+                          <span class="badge rounded-pill priority-badge" [attr.data-priority]="task.priority">{{ task.priority }}</span>
+                        </div>
+                        <p class="text-secondary mb-2">{{ formatDuration(task.durationMinutes) }}</p>
+                        <p class="text-secondary mb-0" *ngIf="task.description">{{ task.description }}</p>
+                      </div>
+
+                      <div class="d-flex flex-wrap gap-2 task-actions">
+                        <button
+                          type="button"
+                          class="btn btn-success"
+                          (click)="markComplete(task)"
+                          [disabled]="task.status === 'Done' || completingId === task._id"
+                        >
+                          {{ completingId === task._id ? 'Completing...' : (task.status === 'Done' ? 'Completed' : 'Complete') }}
+                        </button>
+                        <button type="button" class="btn btn-outline-primary" (click)="editTask(task)">Edit</button>
+                        <button
+                          type="button"
+                          class="btn btn-outline-danger"
+                          (click)="deleteTask(task)"
+                          [disabled]="deletingId === task._id"
+                        >
+                          {{ deletingId === task._id ? 'Deleting...' : 'Delete' }}
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                </div>
+              </section>
+            </div>
+          </div>
+        </section>
+      </div>
+    </section>
+  </div>
+</main>
