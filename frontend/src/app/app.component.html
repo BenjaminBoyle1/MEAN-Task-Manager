@@ -19,117 +19,140 @@
               Calendar
             </button>
             <button type="button" class="btn btn-outline-secondary" (click)="fetchTasks()" [disabled]="loading">
-              Refresh
+              {{ loading ? 'Refreshing...' : 'Refresh' }}
             </button>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="row g-3 g-lg-4 mb-4">
-      <div class="col-6 col-xl-3">
-        <article class="card stat-card border-0 shadow-sm h-100">
-          <div class="card-body">
-            <div class="text-uppercase small text-secondary fw-semibold mb-2">Total tasks</div>
+    <section class="row g-4 mb-4">
+      <div class="col-6 col-xl-2">
+        <div class="stat-card card border-0 shadow-sm h-100">
+          <div class="card-body p-4">
+            <p class="text-secondary mb-2">Total tasks</p>
             <div class="stat-value">{{ totalTasks }}</div>
           </div>
-        </article>
+        </div>
       </div>
-      <div class="col-6 col-xl-3">
-        <article class="card stat-card border-0 shadow-sm h-100">
-          <div class="card-body">
-            <div class="text-uppercase small text-secondary fw-semibold mb-2">Planned this week</div>
+      <div class="col-6 col-xl-2">
+        <div class="stat-card card border-0 shadow-sm h-100">
+          <div class="card-body p-4">
+            <p class="text-secondary mb-2">This week</p>
             <div class="stat-value">{{ tasksThisWeek }}</div>
           </div>
-        </article>
+        </div>
       </div>
-      <div class="col-6 col-xl-3">
-        <article class="card stat-card border-0 shadow-sm h-100">
-          <div class="card-body">
-            <div class="text-uppercase small text-secondary fw-semibold mb-2">Estimated workload</div>
+      <div class="col-6 col-xl-2">
+        <div class="stat-card card border-0 shadow-sm h-100">
+          <div class="card-body p-4">
+            <p class="text-secondary mb-2">Planned time</p>
             <div class="stat-value">{{ formatDuration(totalPlannedMinutes) }}</div>
           </div>
-        </article>
+        </div>
       </div>
-      <div class="col-6 col-xl-3">
-        <article class="card stat-card stat-card-accent border-0 shadow-sm h-100">
-          <div class="card-body">
-            <div class="text-uppercase small text-secondary fw-semibold mb-2">High priority open</div>
+      <div class="col-6 col-xl-2">
+        <div class="stat-card card border-0 shadow-sm h-100">
+          <div class="card-body p-4">
+            <p class="text-secondary mb-2">Completed</p>
+            <div class="stat-value">{{ completedTasks }}</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-xl-2">
+        <div class="stat-card card border-0 shadow-sm h-100">
+          <div class="card-body p-4">
+            <p class="text-secondary mb-2">High priority</p>
             <div class="stat-value">{{ highPriorityTasks }}</div>
           </div>
-        </article>
+        </div>
+      </div>
+      <div class="col-6 col-xl-2">
+        <div class="stat-card stat-card-accent card border-0 shadow-sm h-100">
+          <div class="card-body p-4">
+            <p class="text-secondary mb-2">Completion</p>
+            <div class="stat-value">{{ completionRate }}%</div>
+          </div>
+        </div>
       </div>
     </section>
 
-    <div class="alert alert-danger shadow-sm" *ngIf="error">{{ error }}</div>
-
-    <section class="row g-4 align-items-start">
+    <section class="row g-4">
       <div class="col-12 col-xl-4">
         <section class="card shadow-sm border-0 sticky-panel">
           <div class="card-body p-4">
             <div class="d-flex justify-content-between align-items-start gap-3 mb-4">
               <div>
-                <p class="text-uppercase small text-secondary fw-semibold mb-1">Task details</p>
-                <h2 class="h4 mb-0">{{ editingId ? 'Update task' : 'Create task' }}</h2>
+                <p class="text-uppercase small text-secondary fw-semibold mb-1">Task form</p>
+                <h2 class="h4 mb-0">{{ editingId ? 'Edit task' : 'Plan a task' }}</h2>
               </div>
-              <button *ngIf="editingId" type="button" class="btn btn-outline-secondary btn-sm" (click)="resetForm()">Cancel</button>
+
+              <button type="button" class="btn btn-outline-secondary" *ngIf="editingId" (click)="resetForm()">
+                Cancel
+              </button>
             </div>
 
-            <form [formGroup]="form" (ngSubmit)="submit()" class="row g-3">
-              <div class="col-12">
-                <label class="form-label fw-semibold">Task title</label>
-                <input type="text" class="form-control form-control-lg" formControlName="title" placeholder="Prepare sprint review">
-                <div class="invalid-copy" *ngIf="form.controls.title.touched && form.controls.title.invalid">
-                  Enter a title with at least 2 characters.
-                </div>
-              </div>
+            <div class="alert alert-danger" *ngIf="error">{{ error }}</div>
 
-              <div class="col-12">
-                <label class="form-label fw-semibold">Description</label>
-                <textarea rows="4" class="form-control" formControlName="description" placeholder="Add a short note or action plan"></textarea>
-              </div>
-
-              <div class="col-12 col-md-6">
-                <label class="form-label fw-semibold">Status</label>
-                <select class="form-select" formControlName="status">
-                  <option *ngFor="let status of statuses" [value]="status">{{ status }}</option>
-                </select>
-              </div>
-
-              <div class="col-12 col-md-6">
-                <label class="form-label fw-semibold">Priority</label>
-                <select class="form-select" formControlName="priority">
-                  <option *ngFor="let priority of priorities" [value]="priority">{{ priority }}</option>
-                </select>
-              </div>
-
-              <div class="col-12">
-                <label class="form-label fw-semibold">Scheduled day</label>
-                <input type="date" class="form-control" formControlName="scheduledDate">
-                <div class="invalid-copy" *ngIf="form.controls.scheduledDate.touched && form.controls.scheduledDate.invalid">
-                  Choose a day for this task.
-                </div>
-              </div>
-
-              <div class="col-12">
-                <label class="form-label fw-semibold d-block">Estimated time</label>
-                <div class="row g-3">
-                  <div class="col-6">
-                    <input type="number" min="0" class="form-control" formControlName="durationHours" placeholder="Hours">
-                    <div class="field-hint mt-1">Hours</div>
-                  </div>
-                  <div class="col-6">
-                    <input type="number" min="0" max="59" step="5" class="form-control" formControlName="durationMinutes" placeholder="Minutes">
-                    <div class="field-hint mt-1">Minutes</div>
+            <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+              <div class="row g-3">
+                <div class="col-12">
+                  <label class="form-label fw-semibold">Title</label>
+                  <input type="text" class="form-control" formControlName="title" placeholder="Example: Team check-in">
+                  <div class="invalid-copy" *ngIf="form.controls.title.touched && form.controls.title.invalid">
+                    Enter at least 2 characters.
                   </div>
                 </div>
-                <div class="field-hint mt-2">Enter how long this task will take.</div>
-              </div>
 
-              <div class="col-12 d-grid">
-                <button type="submit" class="btn btn-primary btn-lg" [disabled]="submitting">
-                  {{ submitting ? 'Saving...' : (editingId ? 'Save changes' : 'Add task') }}
-                </button>
+                <div class="col-12">
+                  <label class="form-label fw-semibold">Description</label>
+                  <textarea class="form-control" formControlName="description" placeholder="Add context, notes, or next steps"></textarea>
+                </div>
+
+                <div class="col-sm-6">
+                  <label class="form-label fw-semibold">Status</label>
+                  <select class="form-select" formControlName="status">
+                    <option *ngFor="let status of statuses" [value]="status">{{ status }}</option>
+                  </select>
+                </div>
+
+                <div class="col-sm-6">
+                  <label class="form-label fw-semibold">Priority</label>
+                  <select class="form-select" formControlName="priority">
+                    <option *ngFor="let priority of priorities" [value]="priority">{{ priority }}</option>
+                  </select>
+                </div>
+
+                <div class="col-sm-6">
+                  <label class="form-label fw-semibold">Date</label>
+                  <input type="date" class="form-control" formControlName="scheduledDate">
+                </div>
+
+                <div class="col-sm-6">
+                  <label class="form-label fw-semibold">Time</label>
+                  <input type="time" class="form-control" formControlName="scheduledTime">
+                </div>
+
+                <div class="col-12">
+                  <label class="form-label fw-semibold">Duration</label>
+                  <div class="row g-2">
+                    <div class="col-6">
+                      <input type="number" min="0" class="form-control" formControlName="durationHours" placeholder="Hours">
+                      <div class="field-hint mt-1">Hours</div>
+                    </div>
+                    <div class="col-6">
+                      <input type="number" min="0" max="59" step="5" class="form-control" formControlName="durationMinutes" placeholder="Minutes">
+                      <div class="field-hint mt-1">Minutes</div>
+                    </div>
+                  </div>
+                  <div class="field-hint mt-2">Choose when the task starts and how long it should take.</div>
+                </div>
+
+                <div class="col-12 d-grid">
+                  <button type="submit" class="btn btn-primary btn-lg" [disabled]="submitting">
+                    {{ submitting ? 'Saving...' : (editingId ? 'Save changes' : 'Add task') }}
+                  </button>
+                </div>
               </div>
             </form>
           </div>
@@ -209,7 +232,9 @@
                       </div>
 
                       <div class="task-meta d-flex flex-wrap gap-2 text-secondary mb-3">
-                        <span>{{ formatDate(task.scheduledDate) }}</span>
+                        <span>{{ formatDate(task.scheduledFor) }}</span>
+                        <span>•</span>
+                        <span>{{ formatTime(task.scheduledFor) }}</span>
                         <span>•</span>
                         <span>{{ formatDuration(task.durationMinutes) }}</span>
                         <span *ngIf="isOverdue(task)" class="badge rounded-pill overdue-chip">Overdue</span>
@@ -252,7 +277,7 @@
                 <div class="card-body p-4">
                   <div class="d-flex flex-column flex-md-row justify-content-between gap-2 mb-3 pb-3 border-bottom">
                     <div>
-                      <h3 class="h5 mb-1">{{ formatDate(group.date) }}</h3>
+                      <h3 class="h5 mb-1">{{ group.heading }}</h3>
                       <p class="text-secondary mb-0">{{ group.tasks.length }} task{{ group.tasks.length === 1 ? '' : 's' }} scheduled</p>
                     </div>
                     <strong class="fs-5">{{ formatDuration(group.totalMinutes) }}</strong>
@@ -266,7 +291,7 @@
                           <span class="badge rounded-pill status-badge" [attr.data-status]="task.status">{{ task.status }}</span>
                           <span class="badge rounded-pill priority-badge" [attr.data-priority]="task.priority">{{ task.priority }}</span>
                         </div>
-                        <p class="text-secondary mb-2">{{ formatDuration(task.durationMinutes) }}</p>
+                        <p class="text-secondary mb-2">{{ formatTime(task.scheduledFor) }} • {{ formatDuration(task.durationMinutes) }}</p>
                         <p class="text-secondary mb-0" *ngIf="task.description">{{ task.description }}</p>
                       </div>
 

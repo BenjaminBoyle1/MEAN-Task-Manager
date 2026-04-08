@@ -5,7 +5,7 @@ const router = express.Router();
 
 router.get('/', async (_req, res, next) => {
   try {
-    const tasks = await Task.find().sort({ scheduledDate: 1, createdAt: -1 });
+    const tasks = await Task.find().sort({ scheduledFor: 1, createdAt: -1 });
     res.status(200).json(tasks);
   } catch (error) {
     next(error);
@@ -19,7 +19,7 @@ router.post('/', async (req, res, next) => {
       description = '',
       status = 'Pending',
       priority = 'Medium',
-      scheduledDate,
+      scheduledFor,
       durationMinutes,
     } = req.body;
 
@@ -28,7 +28,7 @@ router.post('/', async (req, res, next) => {
       description,
       status,
       priority,
-      scheduledDate,
+      scheduledFor,
       durationMinutes,
     });
 
@@ -46,13 +46,13 @@ router.put('/:id', async (req, res, next) => {
       description = '',
       status,
       priority,
-      scheduledDate,
+      scheduledFor,
       durationMinutes,
     } = req.body;
 
     const updatedTask = await Task.findByIdAndUpdate(
       id,
-      { title, description, status, priority, scheduledDate, durationMinutes },
+      { title, description, status, priority, scheduledFor, durationMinutes },
       { new: true, runValidators: true }
     );
 
@@ -86,8 +86,7 @@ router.patch('/:id/complete', async (req, res, next) => {
 
 router.delete('/:id', async (req, res, next) => {
   try {
-    const { id } = req.params;
-    const deletedTask = await Task.findByIdAndDelete(id);
+    const deletedTask = await Task.findByIdAndDelete(req.params.id);
 
     if (!deletedTask) {
       return res.status(404).json({ message: 'Task not found' });

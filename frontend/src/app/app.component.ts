@@ -19,8 +19,8 @@ export class AppComponent implements OnInit {
   readonly statuses: TaskStatus[] = ['Pending', 'In Progress', 'Done'];
   readonly priorities: TaskPriority[] = ['Low', 'Medium', 'High'];
   readonly sortOptions = [
-    { value: 'scheduledDateAsc', label: 'Soonest first' },
-    { value: 'scheduledDateDesc', label: 'Latest first' },
+    { value: 'scheduledForAsc', label: 'Soonest first' },
+    { value: 'scheduledForDesc', label: 'Latest first' },
     { value: 'priorityDesc', label: 'Highest priority' },
     { value: 'durationDesc', label: 'Longest first' },
     { value: 'updatedAtDesc', label: 'Recently updated' },
@@ -37,7 +37,7 @@ export class AppComponent implements OnInit {
   searchTerm = '';
   statusFilter: 'All' | TaskStatus = 'All';
   priorityFilter: 'All' | TaskPriority = 'All';
-  sortBy: (typeof this.sortOptions)[number]['value'] = 'scheduledDateAsc';
+  sortBy: (typeof this.sortOptions)[number]['value'] = 'scheduledForAsc';
   viewMode: 'board' | 'calendar' = 'board';
 
   readonly form = this.fb.nonNullable.group({
@@ -46,6 +46,7 @@ export class AppComponent implements OnInit {
     status: ['Pending' as TaskStatus, Validators.required],
     priority: ['Medium' as TaskPriority, Validators.required],
     scheduledDate: ['', Validators.required],
+    scheduledTime: ['09:00', Validators.required],
     durationHours: [1, [Validators.required, Validators.min(0)]],
     durationMinutes: [0, [Validators.required, Validators.min(0), Validators.max(59)]],
   });
@@ -74,7 +75,8 @@ export class AppComponent implements OnInit {
           task.description,
           task.status,
           task.priority,
-          this.formatDate(task.scheduledDate),
+          this.formatDate(task.scheduledFor),
+          this.formatTime(task.scheduledFor),
         ]
           .join(' ')
           .toLowerCase()
@@ -83,21 +85,22 @@ export class AppComponent implements OnInit {
       .sort((a, b) => this.compareTasks(a, b));
   }
 
-  get calendarGroups(): Array<{ date: string; tasks: Task[]; totalMinutes: number }> {
+  get calendarGroups(): Array<{ dateKey: string; heading: string; tasks: Task[]; totalMinutes: number }> {
     const groups = new Map<string, Task[]>();
 
     for (const task of this.filteredTasks) {
-      const key = task.scheduledDate;
+      const key = this.getLocalDateKey(task.scheduledFor);
       const current = groups.get(key) ?? [];
       current.push(task);
       groups.set(key, current);
     }
 
     return [...groups.entries()]
-      .sort(([a], [b]) => this.toTime(a) - this.toTime(b))
-      .map(([date, tasks]) => ({
-        date,
-        tasks,
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([dateKey, tasks]) => ({
+        dateKey,
+        heading: this.formatDateHeading(dateKey),
+        tasks: [...tasks].sort((a, b) => this.toTime(a.scheduledFor) - this.toTime(b.scheduledFor)),
         totalMinutes: tasks.reduce((sum, task) => sum + task.durationMinutes, 0),
       }));
   }
@@ -112,8 +115,8 @@ export class AppComponent implements OnInit {
     weekEnd.setDate(now.getDate() + 7);
 
     return this.tasks.filter((task) => {
-      const date = new Date(task.scheduledDate);
-      return date >= this.startOfDay(now) && date <= this.endOfDay(weekEnd);
+      const scheduled = new Date(task.scheduledFor);
+      return scheduled >= this.startOfDay(now) && scheduled <= this.endOfDay(weekEnd);
     }).length;
   }
 
@@ -164,6 +167,12 @@ export class AppComponent implements OnInit {
       return;
     }
 
+    const scheduledFor = this.combineLocalDateTime(raw.scheduledDate, raw.scheduledTime);
+    if (!scheduledFor) {
+      this.error = 'Please enter a valid date and time.';
+      return;
+    }
+
     this.submitting = true;
     this.error = '';
 
@@ -172,7 +181,7 @@ export class AppComponent implements OnInit {
       description: raw.description.trim(),
       status: raw.status,
       priority: raw.priority,
-      scheduledDate: raw.scheduledDate,
+      scheduledFor,
       durationMinutes: totalMinutes,
     };
 
@@ -210,6 +219,7 @@ export class AppComponent implements OnInit {
   editTask(task: Task): void {
     const hours = Math.floor(task.durationMinutes / 60);
     const minutes = task.durationMinutes % 60;
+    const local = this.toLocalFormDateTime(task.scheduledFor);
 
     this.editingId = task._id ?? null;
     this.form.setValue({
@@ -217,7 +227,8 @@ export class AppComponent implements OnInit {
       description: task.description,
       status: task.status,
       priority: task.priority,
-      scheduledDate: task.scheduledDate.slice(0, 10),
+      scheduledDate: local.date,
+      scheduledTime: local.time,
       durationHours: hours,
       durationMinutes: minutes,
     });
@@ -238,7 +249,6 @@ export class AppComponent implements OnInit {
         next: (updatedTask) => {
           this.tasks = this.tasks.map((item) => (item._id === task._id ? updatedTask : item));
           if (this.editingId === task._id) {
-            this.editingId = task._id;
             this.editTask(updatedTask);
           }
         },
@@ -280,6 +290,7 @@ export class AppComponent implements OnInit {
       status: 'Pending',
       priority: 'Medium',
       scheduledDate: this.getTodayDateInputValue(),
+      scheduledTime: '09:00',
       durationHours: 1,
       durationMinutes: 0,
     });
@@ -289,7 +300,7 @@ export class AppComponent implements OnInit {
     this.searchTerm = '';
     this.statusFilter = 'All';
     this.priorityFilter = 'All';
-    this.sortBy = 'scheduledDateAsc';
+    this.sortBy = 'scheduledForAsc';
   }
 
   formatDuration(totalMinutes: number): string {
@@ -305,27 +316,44 @@ export class AppComponent implements OnInit {
     return `${minutes}m`;
   }
 
-  formatDate(dateValue: string): string {
-    return new Date(dateValue).toLocaleDateString(undefined, {
+  formatDate(value: string): string {
+    return new Intl.DateTimeFormat(undefined, {
       weekday: 'short',
       month: 'short',
       day: 'numeric',
       year: 'numeric',
-    });
+    }).format(new Date(value));
+  }
+
+  formatTime(value: string): string {
+    return new Intl.DateTimeFormat(undefined, {
+      hour: 'numeric',
+      minute: '2-digit',
+    }).format(new Date(value));
+  }
+
+  formatDateHeading(dateKey: string): string {
+    const [year, month, day] = dateKey.split('-').map(Number);
+    return new Intl.DateTimeFormat(undefined, {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    }).format(new Date(year, month - 1, day));
   }
 
   isOverdue(task: Task): boolean {
-    return task.status !== 'Done' && this.startOfDay(new Date(task.scheduledDate)) < this.startOfDay(new Date());
+    return task.status !== 'Done' && this.toTime(task.scheduledFor) < Date.now();
   }
 
-  trackByTaskId(_index: number, task: Task): string {
-    return task._id ?? String(_index);
+  trackByTaskId(index: number, task: Task): string {
+    return task._id ?? String(index);
   }
 
   private compareTasks(a: Task, b: Task): number {
     switch (this.sortBy) {
-      case 'scheduledDateDesc':
-        return this.toTime(b.scheduledDate) - this.toTime(a.scheduledDate);
+      case 'scheduledForDesc':
+        return this.toTime(b.scheduledFor) - this.toTime(a.scheduledFor);
       case 'priorityDesc':
         return this.priorityRank(b.priority) - this.priorityRank(a.priority);
       case 'durationDesc':
@@ -334,9 +362,9 @@ export class AppComponent implements OnInit {
         return this.toTime(b.updatedAt) - this.toTime(a.updatedAt);
       case 'titleAsc':
         return a.title.localeCompare(b.title);
-      case 'scheduledDateAsc':
+      case 'scheduledForAsc':
       default:
-        return this.toTime(a.scheduledDate) - this.toTime(b.scheduledDate);
+        return this.toTime(a.scheduledFor) - this.toTime(b.scheduledFor);
     }
   }
 
@@ -356,15 +384,45 @@ export class AppComponent implements OnInit {
     return value ? new Date(value).getTime() : 0;
   }
 
-  private getTodayDateInputValue(): string {
-    return new Date().toISOString().slice(0, 10);
-  }
-
   private startOfDay(date: Date): Date {
-    return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
   }
 
   private endOfDay(date: Date): Date {
     return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
+  }
+
+  private getTodayDateInputValue(): string {
+    const now = new Date();
+    return `${now.getFullYear()}-${this.pad(now.getMonth() + 1)}-${this.pad(now.getDate())}`;
+  }
+
+  private combineLocalDateTime(date: string, time: string): string | null {
+    if (!date || !time) {
+      return null;
+    }
+
+    const [year, month, day] = date.split('-').map(Number);
+    const [hours, minutes] = time.split(':').map(Number);
+    const combined = new Date(year, month - 1, day, hours, minutes, 0, 0);
+
+    return Number.isNaN(combined.getTime()) ? null : combined.toISOString();
+  }
+
+  private toLocalFormDateTime(value: string): { date: string; time: string } {
+    const date = new Date(value);
+    return {
+      date: `${date.getFullYear()}-${this.pad(date.getMonth() + 1)}-${this.pad(date.getDate())}`,
+      time: `${this.pad(date.getHours())}:${this.pad(date.getMinutes())}`,
+    };
+  }
+
+  private getLocalDateKey(value: string): string {
+    const date = new Date(value);
+    return `${date.getFullYear()}-${this.pad(date.getMonth() + 1)}-${this.pad(date.getDate())}`;
+  }
+
+  private pad(value: number): string {
+    return String(value).padStart(2, '0');
   }
 }

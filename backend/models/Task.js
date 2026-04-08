@@ -25,10 +25,9 @@ const taskSchema = new mongoose.Schema(
       enum: ['Low', 'Medium', 'High'],
       default: 'Medium',
     },
-    scheduledDate: {
-      type: String,
+    scheduledFor: {
+      type: Date,
       required: true,
-      match: /^\d{4}-\d{2}-\d{2}$/,
     },
     durationMinutes: {
       type: Number,

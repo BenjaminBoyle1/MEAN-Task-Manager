@@ -6,7 +6,7 @@ A polished single-page MEAN stack application for planning tasks with:
 - Express + Node.js API
 - MongoDB database with Mongoose
 - Full CRUD support
-- Task scheduling by day
+- Date and time scheduling for each task
 - Duration estimates for each task
 - Priority levels
 - Board and calendar agenda views
@@ -51,7 +51,7 @@ Each task now includes:
 - description
 - status
 - priority
-- scheduledDate
+- scheduledFor (date + time)
 - durationMinutes
 
 Extra action:

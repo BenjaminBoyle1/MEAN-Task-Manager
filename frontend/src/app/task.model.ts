@@ -7,7 +7,7 @@ export interface Task {
   description: string;
   status: TaskStatus;
   priority: TaskPriority;
-  scheduledDate: string;
+  scheduledFor: string;
   durationMinutes: number;
   createdAt?: string;
   updatedAt?: string;
